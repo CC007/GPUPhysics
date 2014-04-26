@@ -1,0 +1,24 @@
+INSTALLATION INSTRUCTIONS:
+
+1. Install Visual Studio (Restart if asked by the installer)
+2. Install NVIDIA CUDA toolkit (and stuff that comes with it) (Restart if asked by the installer)
+3. Install Code::Blocks with MinGW (Restart if asked by the installer)
+4. Configure Code::Blocks as described in http://benbarsdell.blogspot.nl/2009/03/cuda-in-codeblocks-first-things-second.html
+5. Configure more according to 3rd post of http://forum.byte-welt.net/archive/index.php/t-3260.html
+6. Restart your computer
+
+
+OPTIONALLY:
+
+- Add CUDA keywords to C/C++ using Settings -> Edutor... -> SyntaxHighlighting -> C/C++ -> Keywords... -> Set: 2 
+  example keywords you can add: __host__ __device__ __global__ __shared__ __constant__
+
+- Disable "unreferenced inline function has been removed" warning (to speed up compilation time): 
+  1. Go to Settings -> Compiler... 
+  2. Select the NVIDIA Compiler you made in installation step 4.
+  3. Go to the Compiler Settings tab
+  4. Go to the Other Options tab
+  5. Type /wd4514 and click OK
+  
+NOTE:
+  The .cu files can be created by creating a new empty file. Then you need to rightclick it and in the second tab select compiling and linking. Then check in the first tab if it isn't accidentaly read-only.
