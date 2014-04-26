@@ -1,0 +1,46 @@
+CC=gcc
+CUARCH=sm_20
+CCDEBUG=
+CUDEBUG=
+OPT=O3
+CU=/usr/local/cuda-5.5/bin/nvcc -arch=$(CUARCH)
+CCFLAGS=-c -Wall --std=c++11 -$(OPT)
+CUFLAGS=-dc -$(OPT)
+CCSOURCES=
+CUSOURCES=main.cu
+CCOBJDIR=cc_obj
+CUOBJDIR=cu_obj
+
+CCOBJECTS=$(addprefix $(CCOBJDIR)/,$(CCSOURCES:.cc=.o))
+CUOBJECTS=$(addprefix $(CUOBJDIR)/,$(CUSOURCES:.cu=.o))
+
+EXECUTABLE=test
+
+all: $(EXECUTABLE)
+
+nolink: $(CCOBJECTS) $(CUOBJECTS)
+
+$(EXECUTABLE): $(CCOBJECTS) $(CUOBJECTS)
+	$(CU) $^ -o $(EXECUTABLE)					# link final executable
+	
+-include $(CCOBJECTS:.o=_cc.d)						# import generated dependencies
+-include $(CUOBJECTS:.o=_cu.d)
+	
+$(CCOBJDIR)/%.o: %.cc | $(CCOBJDIR)
+	$(CC) $(CCFLAGS) $(CCDEBUG) $< -o $@					# compile C++ source-files
+	@$(CC) -MM $< > $(CCOBJDIR)/$*_cc.d				# generate dependencies
+	@sed -i '1s/^/$(CCOBJDIR)\//' $(CCOBJDIR)/$*_cc.d		# prepend object-dir to the target
+	
+$(CUOBJDIR)/%.o: %.cu | $(CUOBJDIR)
+	$(CU) $(CUFLAGS) $(CUDEBUG) $< -o $@					# compile CUDA-C++ source-files
+	@$(CC) -x c++ -MM $< > $(CUOBJDIR)/$*_cu.d			# generate dependencies
+	@sed -i '1s/^/$(CUOBJDIR)\//' $(CUOBJDIR)/$*_cu.d		# prepend object-dir to the target
+	
+$(CCOBJDIR):
+	@mkdir -p $@
+	
+$(CUOBJDIR):
+	@mkdir -p $@
+	
+clean:
+	rm -f $(CCOBJDIR)/*.o $(CUOBJDIR)/*.o $(CCOBJDIR)/*.d $(CUOBJDIR)/*.d

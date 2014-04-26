@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1394720534 source:e:\school\dropbox\school\universiteit\honours college\gpu\readmap\main.cu
+	<stdio.h>
+
+1395055430 source:e:\school\dropbox\school\universiteit\honours college\gpu\projects\readmap\main.cu
+	<stdio.h>
+	<stdlib.h>
+
+1395662246 source:d:\dropbox\school\universiteit\honours college\gpu\projects\readmap\main.cu
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+

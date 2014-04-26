@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1393183579 source:d:\dropbox\school\universiteit\honours college\gpu\fastmergesort\main.cu
+	<stdio.h>
+	<time.h>
+	<windows.h>
+	<stdlib.h>
+	<string.h>
+	<math.h>
+	<assert.h>
+
