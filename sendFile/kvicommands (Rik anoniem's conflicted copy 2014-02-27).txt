@@ -1,0 +1,4 @@
+rm -r >delFiles.txt 
+put -r >winToKvi.txt 
+putty-0.63/putty-0.63/unix/plink schaaf@srv016 -pw pisnp314 -m delFiles.txt 
+putty-0.63/putty-0.63/unix/psftp schaaf@srv016 -pw pisnp314 -b kviToServer.txt 

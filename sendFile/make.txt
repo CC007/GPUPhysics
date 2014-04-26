@@ -1,0 +1,3 @@
+echo cd readMap/ > make.txt 
+echo make CUSOURCES=\'main.cu\' all -f ../Makefile.dat >> make.txt 
+putty-0.63/putty-0.63/unix/plink schaaf@srv016 -pw pisnp314 -m make.txt 
