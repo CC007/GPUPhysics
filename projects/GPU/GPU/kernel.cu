@@ -1,121 +1,264 @@
-
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-
 #include <stdio.h>
+#include <conio.h>
+#include <stdlib.h>
+#include <string.h>
 
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size);
+#define ITER 16
 
-__global__ void addKernel(int *c, const int *a, const int *b)
-{
-    int i = threadIdx.x;
-    c[i] = a[i] + b[i];
+typedef struct Map{
+  int length;
+  double *A;
+  int *x;
+  int *dx;
+  int *y;
+  int *dy;
+  int *delta;
+  int *phi;
+}Map;
+
+typedef struct Coefs{
+  int length;
+  double *x;
+  double *dx;
+  double *y;
+  double *dy;
+  double *delta;
+  double *phi;
+}Coofs;
+
+typedef struct Vars{
+  double mass;
+  double momentum;
+  double kinEn;
+  double gamma;
+  double beta;
+  double mAnomalyG;
+  double spinTuneGgamma;
+  double lRefOrbit;
+}Vars;
+
+void mallocMap(Map *m, int p){
+  (*m).length = p;
+  if(p>0){
+    (*m).A = (double*)calloc(p,sizeof(double));
+    (*m).x = (int*)calloc(p,sizeof(int));
+    (*m).dx = (int*)calloc(p,sizeof(int));
+    (*m).y = (int*)calloc(p,sizeof(int));
+    (*m).dy = (int*)calloc(p,sizeof(int));
+    (*m).delta = (int*)calloc(p,sizeof(int));
+    (*m).phi = (int*)calloc(p,sizeof(int));
+  }
 }
 
-int main()
-{
-    const int arraySize = 5;
-    const int a[arraySize] = { 1, 2, 3, 4, 5 };
-    const int b[arraySize] = { 10, 20, 30, 40, 50 };
-    int c[arraySize] = { 0 };
-
-    // Add vectors in parallel.
-    cudaError_t cudaStatus = addWithCuda(c, a, b, arraySize);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addWithCuda failed!");
-        return 1;
+void freeMap(Map *m){
+    if((*m).length > 0){
+      free((*m).A);
+      free((*m).x);
+      free((*m).dx);
+      free((*m).y);
+      free((*m).dy);
+      free((*m).delta);
+      free((*m).phi);
     }
+}
 
-    printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",
-        c[0], c[1], c[2], c[3], c[4]);
+void mallocCoefs(Coofs *c, int p){
+  (*c).length = p;
+  if(p>0){
+    (*c).x = (double*)calloc(p,sizeof(double));
+    (*c).dx = (double*)calloc(p,sizeof(double));
+    (*c).y = (double*)calloc(p,sizeof(double));
+    (*c).dy = (double*)calloc(p,sizeof(double));
+    (*c).delta = (double*)calloc(p,sizeof(double));
+    (*c).phi = (double*)calloc(p,sizeof(double));
+  }
+}
 
-    // cudaDeviceReset must be called before exiting in order for profiling and
-    // tracing tools such as Nsight and Visual Profiler to show complete traces.
-    cudaStatus = cudaDeviceReset();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceReset failed!");
-        return 1;
+void freeCoefs(Coofs *c){
+    if((*c).length > 0){
+      free((*c).x);
+      free((*c).dx);
+      free((*c).y);
+      free((*c).dy);
+      free((*c).delta);
+      free((*c).phi);
     }
+}
 
+void readMap(FILE *fp, Map *m){
+  char* line = (char*)malloc(200*sizeof(char));
+  line = fgets(line, 200, fp);
+  int dum1, dum2;
+  if(strncmp(line, "     I  COEFFICIENT            ORDER EXPONENTS", 46)!=0){
+     if(strncmp(line, "     ALL COMPONENTS ZERO ", 24)!=0) exit(EXIT_FAILURE);
+  }
+  for(int i=0;!strstr((line = fgets(line, 200, fp)), "------");i++){
+    sscanf(line,"%d %lf %d %d %d %d %d %d %d",
+           &dum1,
+           &((*m).A[i]),
+           &dum2,
+           &((*m).x[i]),
+           &((*m).dx[i]),
+           &((*m).y[i]),
+           &((*m).dy[i]),
+           &((*m).delta[i]),
+           &((*m).phi[i])
+    );
+  }
+  free(line);
+}
+
+void readVars(FILE *fp, Vars *v){
+  char* line = (char*)malloc(200*sizeof(char));
+  line = fgets(line, 200, fp);
+  printf("check and store muon mass\n");
+  if (sscanf(line,"Muon Mass =   %lf MeV/c^2",&((*v).mass)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  printf("check and store muon momentum\n");
+  if (sscanf(line,"Muon Momentum =   %lf MeV/c",&((*v).momentum)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  printf("check and store muon kin energy\n");
+  if (sscanf(line,"Muon Kinetic Energy =   %lf MeV",&((*v).kinEn)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  printf("check and store Muon gamma\n");
+  if (sscanf(line,"Muon gamma =   %lf",&((*v).gamma)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  printf("check and store Muon beta\n");
+  if (sscanf(line,"Muon beta =  %lf",&((*v).beta)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  printf("check and store Muon Anomaly G\n");
+  if (sscanf(line,"Muon Anomaly G =  %lf",&((*v).mAnomalyG)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  printf("check and store Muon Spin Tune G.gamma\n");
+  if (sscanf(line,"Muon Spin Tune G.gamma =  %lf",&((*v).spinTuneGgamma)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  if (sscanf(line," L    %lf",&((*v).lRefOrbit)) != 1) exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  if (line[1] !='P') exit(EXIT_FAILURE);
+  line = fgets(line, 200, fp);
+  if (line[1] !='A') exit(EXIT_FAILURE);
+  free(line);
+}
+
+void sumArrayHelper(double *nums, int length, int interval){
+  int index = 0;
+  int next = interval/2;
+  do{
+    if(next < length){
+      nums[index] += nums[next];
+    }
+    index += interval;
+    next += interval;
+  } while (index < length);
+}
+
+double sumArray(double *nums, int length){
+  if(length <= 0){
     return 0;
+  }
+  int interval = 2;
+  while(interval < length*2){
+    sumArrayHelper(nums, length, interval);
+    interval *= 2;
+  }
+  return nums[0];
 }
 
-// Helper function for using CUDA to add vectors in parallel.
-cudaError_t addWithCuda(int *c, const int *a, const int *b, unsigned int size)
-{
-    int *dev_a = 0;
-    int *dev_b = 0;
-    int *dev_c = 0;
-    cudaError_t cudaStatus;
+void getCoefs(Coefs *c){
+  printf("Geef de 6 coefficienten: ");
 
-    // Choose which GPU to run on, change this on a multi-GPU system.
-    cudaStatus = cudaSetDevice(0);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-        goto Error;
-    }
+  scanf("%lf %lf %lf %lf %lf %lf",
+        &((*c).x[0]),
+        &((*c).dx[0]),
+        &((*c).y[0]),
+        &((*c).dy[0]),
+        &((*c).delta[0]),
+        &((*c).phi[0])
+  );
+}
 
-    // Allocate GPU buffers for three vectors (two input, one output)    .
-    cudaStatus = cudaMalloc((void**)&dev_c, size * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
+void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
+  double *nums = (double*)calloc((*m).length,sizeof(double));
 
-    cudaStatus = cudaMalloc((void**)&dev_a, size * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
+  for(int i = 0; i < (*m).length; i++) {
+    nums[i] = (*m).A[i] * pow((*c).x[idx],(*m).x[i])
+                        * pow((*c).dx[idx],(*m).dx[i])
+                        * pow((*c).y[idx],(*m).y[i])
+                        * pow((*c).dy[idx],(*m).dy[i])
+                        * pow((*c).delta[idx],(*m).delta[i])
+                        * pow((*c).phi[idx],(*m).phi[i]);
+  }
 
-    cudaStatus = cudaMalloc((void**)&dev_b, size * sizeof(int));
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMalloc failed!");
-        goto Error;
-    }
+  *newValue = sumArray(nums, (*m).length);
+  free(nums);
+}
 
-    // Copy input vectors from host memory to GPU buffers.
-    cudaStatus = cudaMemcpy(dev_a, a, size * sizeof(int), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
+int main(int argc, char **argv){
+  char *fileName = "Test1.dat";
+  Map x;
+  Map dx;
+  Map y;
+  Map dy;
+  Map delta;
+  Map phi;
+  Coefs c;
+  Vars v;
+  printf("map x\n");
+  mallocMap(&x, 17);
+  printf("map dx\n");
+  mallocMap(&dx, 6);
+  printf("map y\n");
+  mallocMap(&y, 11);
+  printf("map dy\n");
+  mallocMap(&dy, 1);
+  printf("map delta\n");
+  mallocMap(&delta, 0);
+  printf("map phi\n");
+  mallocMap(&phi, 0);
+  printf("map coefs\n");
+  mallocCoefs(&c, ITER);
 
-    cudaStatus = cudaMemcpy(dev_b, b, size * sizeof(int), cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
+  printf("open file\n");
+  FILE *fp = fopen(fileName, "r");
+  printf("check if file is NULL\n");
+  if( fp == NULL ){
+    printf("Error while opening the file.\n");
+    exit(EXIT_FAILURE);
+  }
+  printf("read vars");
+  readVars(fp,&v);
+  printf("read x\n");
+  readMap(fp, &x);
+  printf("read dx\n");
+  readMap(fp, &dx);
+  printf("read y\n");
+  readMap(fp, &y);
+  printf("read dy\n");
+  readMap(fp, &dy);
+  printf("read delta\n");
+  readMap(fp, &delta);
+  printf("read phi\n");
+  readMap(fp, &phi);
 
-    // Launch a kernel on the GPU with one thread for each element.
-    addKernel<<<1, size>>>(dev_c, dev_a, dev_b);
-
-    // Check for any errors launching the kernel
-    cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-        goto Error;
-    }
-    
-    // cudaDeviceSynchronize waits for the kernel to finish, and returns
-    // any errors encountered during the launch.
-    cudaStatus = cudaDeviceSynchronize();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cudaStatus);
-        goto Error;
-    }
-
-    // Copy output vector from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(c, dev_c, size * sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "cudaMemcpy failed!");
-        goto Error;
-    }
-
-Error:
-    cudaFree(dev_c);
-    cudaFree(dev_a);
-    cudaFree(dev_b);
-    
-    return cudaStatus;
+  printf("read coefs\n");
+  getCoefs(&c);
+  for(int i = 0;i < ITER;i++){
+    printf("%f %f %f %f %f %f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
+    calcCoefs(&c, i, &x, &(c.x[i+1]));
+    calcCoefs(&c, i, &dx, &(c.dx[i+1]));
+    calcCoefs(&c, i, &y, &(c.y[i+1]));
+    calcCoefs(&c, i, &dy, &(c.dy[i+1]));
+    calcCoefs(&c, i, &delta, &(c.delta[i+1]));
+    calcCoefs(&c, i, &phi, &(c.phi[i+1]));
+  }
+  fclose(fp);
+  freeMap(&x);
+  freeMap(&dx);
+  freeMap(&y);
+  freeMap(&dy);
+  freeMap(&delta);
+  freeMap(&phi);
+  freeCoefs(&c);
+  getch();
+  return 0;
 }
