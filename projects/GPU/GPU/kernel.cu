@@ -97,7 +97,7 @@ void readMap(FILE *fp, Map *m, int nr){
 			exit(EXIT_FAILURE);
 		}
 		else{
-			(*m).A[0] = 1;
+			(*m).A[0] = 1.0;
 			(*m).x[0] = nr == 0?1:0;
 			(*m).dx[0] = nr == 1?1:0;
 			(*m).y[0] = nr == 2?1:0;
@@ -190,6 +190,7 @@ void getCoefs(Coefs *c){
 		&((*c).delta[0]),
 		&((*c).phi[0])
 		);
+		printf("coeffs geladen");
 }
 
 void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
@@ -227,9 +228,9 @@ int main(int argc, char **argv){
 	printf("map dy\n");
 	mallocMap(&dy, 1);
 	printf("map delta\n");
-	mallocMap(&delta, 0);
+	mallocMap(&delta, 1);
 	printf("map phi\n");
-	mallocMap(&phi, 0);
+	mallocMap(&phi, 1);
 	printf("map coefs\n");
 	mallocCoefs(&c, ITER);
 
@@ -257,7 +258,7 @@ int main(int argc, char **argv){
 
 	printf("read coefs\n");
 	getCoefs(&c);
-	for(int i = 0;i < ITER;i++){
+	for(int i = 0;i < ITER-1;i++){
 		printf("%f %f %f %f %f %f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
 		calcCoefs(&c, i, &x, &(c.x[i+1]));
 		calcCoefs(&c, i, &dx, &(c.dx[i+1]));
@@ -266,14 +267,23 @@ int main(int argc, char **argv){
 		calcCoefs(&c, i, &delta, &(c.delta[i+1]));
 		calcCoefs(&c, i, &phi, &(c.phi[i+1]));
 	}
+	printf("Calc gelukt");
 	fclose(fp);
+	printf("Close gelukt");
 	freeMap(&x);
+	printf("free x gelukt");
 	freeMap(&dx);
+	printf("free dx gelukt");
 	freeMap(&y);
+	printf("free y gelukt");
 	freeMap(&dy);
+	printf("free dy gelukt");
 	freeMap(&delta);
+	printf("free delta gelukt");
 	freeMap(&phi);
+	printf("free phi gelukt");
 	freeCoefs(&c);
+	printf("free coefs gelukt");
 	getch();
 	return 0;
 }
