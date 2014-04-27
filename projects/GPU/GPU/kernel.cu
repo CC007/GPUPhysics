@@ -2,6 +2,7 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define ITER 16
 
@@ -96,13 +97,13 @@ void readMap(FILE *fp, Map *m, int nr){
 			exit(EXIT_FAILURE);
 		}
 		else{
-			(*m).A[0] = 1
-			(*m).x[0] = nr == 0?1:0
-			(*m).dx[0] = nr == 1?1:0
-			(*m).y[0] = nr == 2?1:0
-			(*m).dy[0] = nr == 3?1:0
-			(*m).delta[0] = nr == 4?1:0
-			(*m).phi[0] = nr == 5?1:0
+			(*m).A[0] = 1;
+			(*m).x[0] = nr == 0?1:0;
+			(*m).dx[0] = nr == 1?1:0;
+			(*m).y[0] = nr == 2?1:0;
+			(*m).dy[0] = nr == 3?1:0;
+			(*m).delta[0] = nr == 4?1:0;
+			(*m).phi[0] = nr == 5?1:0;
 		}
 	}
 	for(int i=0;!strstr((line = fgets(line, 200, fp)), "------");i++){
@@ -240,19 +241,19 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 	printf("read vars");
-	readVars(fp,&v, 0);
+	readVars(fp,&v);
 	printf("read x\n");
-	readMap(fp, &x, 1);
+	readMap(fp, &x, 0);
 	printf("read dx\n");
-	readMap(fp, &dx, 2);
+	readMap(fp, &dx, 1);
 	printf("read y\n");
-	readMap(fp, &y, 3);
+	readMap(fp, &y, 2);
 	printf("read dy\n");
-	readMap(fp, &dy, 4);
+	readMap(fp, &dy, 3);
 	printf("read delta\n");
-	readMap(fp, &delta, 5);
+	readMap(fp, &delta, 4);
 	printf("read phi\n");
-	readMap(fp, &phi, 6);
+	readMap(fp, &phi, 5);
 
 	printf("read coefs\n");
 	getCoefs(&c);
