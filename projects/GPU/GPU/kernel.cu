@@ -4,7 +4,7 @@
 #include <string.h>
 #include <math.h>
 
-#define ITER 16
+#define ITER 128
 
 typedef struct Map{
 	int length;
@@ -92,7 +92,6 @@ void readMap(FILE *fp, Map *m, int nr){
 	int dum1, dum2;
 	printf("%s\n", line);
 	if(strncmp(line, "     I  COEFFICIENT            ORDER EXPONENTS", 46)!=0){
-		printf("Ding gevonden\n", line);
 		if(strncmp(line, "     ALL COMPONENTS ZERO ", 25)!=0){
 			exit(EXIT_FAILURE);
 		}
@@ -190,7 +189,6 @@ void getCoefs(Coefs *c){
 		&((*c).delta[0]),
 		&((*c).phi[0])
 		);
-		printf("coeffs geladen");
 }
 
 void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
@@ -210,7 +208,7 @@ void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
 }
 
 int main(int argc, char **argv){
-	char *fileName = "Test1.dat";
+	char *fileName = "Test2.dat";
 	Map x;
 	Map dx;
 	Map y;
@@ -220,15 +218,15 @@ int main(int argc, char **argv){
 	Coefs c;
 	Vars v;
 	printf("map x\n");
-	mallocMap(&x, 17);
+	mallocMap(&x, 3);
 	printf("map dx\n");
-	mallocMap(&dx, 6);
+	mallocMap(&dx, 3);
 	printf("map y\n");
-	mallocMap(&y, 11);
+	mallocMap(&y, 2);
 	printf("map dy\n");
-	mallocMap(&dy, 1);
+	mallocMap(&dy, 2);
 	printf("map delta\n");
-	mallocMap(&delta, 1);
+	mallocMap(&delta, 4);
 	printf("map phi\n");
 	mallocMap(&phi, 1);
 	printf("map coefs\n");
@@ -259,7 +257,7 @@ int main(int argc, char **argv){
 	printf("read coefs\n");
 	getCoefs(&c);
 	for(int i = 0;i < ITER-1;i++){
-		printf("%f %f %f %f %f %f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
+		printf("%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
 		calcCoefs(&c, i, &x, &(c.x[i+1]));
 		calcCoefs(&c, i, &dx, &(c.dx[i+1]));
 		calcCoefs(&c, i, &y, &(c.y[i+1]));
@@ -267,23 +265,14 @@ int main(int argc, char **argv){
 		calcCoefs(&c, i, &delta, &(c.delta[i+1]));
 		calcCoefs(&c, i, &phi, &(c.phi[i+1]));
 	}
-	printf("Calc gelukt");
 	fclose(fp);
-	printf("Close gelukt");
 	freeMap(&x);
-	printf("free x gelukt");
 	freeMap(&dx);
-	printf("free dx gelukt");
 	freeMap(&y);
-	printf("free y gelukt");
 	freeMap(&dy);
-	printf("free dy gelukt");
 	freeMap(&delta);
-	printf("free delta gelukt");
 	freeMap(&phi);
-	printf("free phi gelukt");
 	freeCoefs(&c);
-	printf("free coefs gelukt");
 	getch();
 	return 0;
 }
