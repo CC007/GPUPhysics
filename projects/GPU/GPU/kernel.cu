@@ -1,10 +1,9 @@
 #include <stdio.h>
-#include <conio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#define ITER 128
+#define ITER 4000
 
 typedef struct Map{
 	int length;
@@ -90,7 +89,6 @@ void readMap(FILE *fp, Map *m, int nr){
 	char* line = (char*)malloc(200*sizeof(char));
 	line = fgets(line, 200, fp);
 	int dum1, dum2;
-	printf("%s\n", line);
 	if(strncmp(line, "     I  COEFFICIENT            ORDER EXPONENTS", 46)!=0){
 		if(strncmp(line, "     ALL COMPONENTS ZERO ", 25)!=0){
 			exit(EXIT_FAILURE);
@@ -125,25 +123,25 @@ void readMap(FILE *fp, Map *m, int nr){
 void readVars(FILE *fp, Vars *v){
 	char* line = (char*)malloc(200*sizeof(char));
 	line = fgets(line, 200, fp);
-	printf("check and store muon mass\n");
+	fprintf(stderr, "check and store muon mass\n");
 	if (sscanf(line,"Muon Mass =   %lf MeV/c^2",&((*v).mass)) != 1) exit(EXIT_FAILURE);
 	line = fgets(line, 200, fp);
-	printf("check and store muon momentum\n");
+	fprintf(stderr, "check and store muon momentum\n");
 	if (sscanf(line,"Muon Momentum =   %lf MeV/c",&((*v).momentum)) != 1) exit(EXIT_FAILURE);
 	line = fgets(line, 200, fp);
-	printf("check and store muon kin energy\n");
+	fprintf(stderr, "check and store muon kin energy\n");
 	if (sscanf(line,"Muon Kinetic Energy =   %lf MeV",&((*v).kinEn)) != 1) exit(EXIT_FAILURE);
 	line = fgets(line, 200, fp);
-	printf("check and store Muon gamma\n");
+	fprintf(stderr, "check and store Muon gamma\n");
 	if (sscanf(line,"Muon gamma =   %lf",&((*v).gamma)) != 1) exit(EXIT_FAILURE);
 	line = fgets(line, 200, fp);
-	printf("check and store Muon beta\n");
+	fprintf(stderr, "check and store Muon beta\n");
 	if (sscanf(line,"Muon beta =  %lf",&((*v).beta)) != 1) exit(EXIT_FAILURE);
 	line = fgets(line, 200, fp);
-	printf("check and store Muon Anomaly G\n");
+	fprintf(stderr, "check and store Muon Anomaly G\n");
 	if (sscanf(line,"Muon Anomaly G =  %lf",&((*v).mAnomalyG)) != 1) exit(EXIT_FAILURE);
 	line = fgets(line, 200, fp);
-	printf("check and store Muon Spin Tune G.gamma\n");
+	fprintf(stderr, "check and store Muon Spin Tune G.gamma\n");
 	if (sscanf(line,"Muon Spin Tune G.gamma =  %lf",&((*v).spinTuneGgamma)) != 1) exit(EXIT_FAILURE);
 	line = fgets(line, 200, fp);
 	if (sscanf(line," L    %lf",&((*v).lRefOrbit)) != 1) exit(EXIT_FAILURE);
@@ -179,7 +177,7 @@ double sumArray(double *nums, int length){
 }
 
 void getCoefs(Coefs *c){
-	printf("Geef de 6 coefficienten: ");
+	fprintf(stderr, "Geef de 6 coefficienten: ");
 
 	scanf("%lf %lf %lf %lf %lf %lf",
 		&((*c).x[0]),
@@ -208,7 +206,7 @@ void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
 }
 
 int main(int argc, char **argv){
-	char *fileName = "Test2.dat";
+	char *fileName = "mapsy3.dat";
 	Map x;
 	Map dx;
 	Map y;
@@ -217,44 +215,44 @@ int main(int argc, char **argv){
 	Map phi;
 	Coefs c;
 	Vars v;
-	printf("map x\n");
-	mallocMap(&x, 3);
-	printf("map dx\n");
-	mallocMap(&dx, 3);
-	printf("map y\n");
-	mallocMap(&y, 2);
-	printf("map dy\n");
-	mallocMap(&dy, 2);
-	printf("map delta\n");
-	mallocMap(&delta, 4);
-	printf("map phi\n");
+	fprintf(stderr, "map x\n");
+	mallocMap(&x, 31);
+	fprintf(stderr, "map dx\n");
+	mallocMap(&dx, 31);
+	fprintf(stderr, "map y\n");
+	mallocMap(&y, 24);
+	fprintf(stderr, "map dy\n");
+	mallocMap(&dy, 24);
+	fprintf(stderr, "map delta\n");
+	mallocMap(&delta, 32);
+	fprintf(stderr, "map phi\n");
 	mallocMap(&phi, 1);
-	printf("map coefs\n");
+	fprintf(stderr, "map coefs\n");
 	mallocCoefs(&c, ITER);
 
-	printf("open file\n");
+	fprintf(stderr, "open file\n");
 	FILE *fp = fopen(fileName, "r");
-	printf("check if file is NULL\n");
+	fprintf(stderr, "check if file is NULL\n");
 	if( fp == NULL ){
-		printf("Error while opening the file.\n");
+		fprintf(stderr, "Error while opening the file.\n");
 		exit(EXIT_FAILURE);
 	}
-	printf("read vars");
+	fprintf(stderr, "read vars");
 	readVars(fp,&v);
-	printf("read x\n");
+	fprintf(stderr, "read x\n");
 	readMap(fp, &x, 0);
-	printf("read dx\n");
+	fprintf(stderr, "read dx\n");
 	readMap(fp, &dx, 1);
-	printf("read y\n");
+	fprintf(stderr, "read y\n");
 	readMap(fp, &y, 2);
-	printf("read dy\n");
+	fprintf(stderr, "read dy\n");
 	readMap(fp, &dy, 3);
-	printf("read delta\n");
+	fprintf(stderr, "read delta\n");
 	readMap(fp, &delta, 4);
-	printf("read phi\n");
+	fprintf(stderr, "read phi\n");
 	readMap(fp, &phi, 5);
 
-	printf("read coefs\n");
+	fprintf(stderr, "read coefs\n");
 	getCoefs(&c);
 	for(int i = 0;i < ITER-1;i++){
 		printf("%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
@@ -273,6 +271,5 @@ int main(int argc, char **argv){
 	freeMap(&delta);
 	freeMap(&phi);
 	freeCoefs(&c);
-	getch();
 	return 0;
 }
