@@ -206,27 +206,34 @@ void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
 }
 
 int main(int argc, char **argv){
-	char *fileName = "mapsy3.dat";
-	Map x;
-	Map dx;
-	Map y;
-	Map dy;
-	Map delta;
-	Map phi;
+	char fileName[200];
+	int xSize, dxSize, ySize, dySize, deltaSize, phiSize;
+	Map x, dx, y, dy, delta, phi;
 	Coefs c;
 	Vars v;
-	fprintf(stderr, "map x\n");
-	mallocMap(&x, 31);
+	fprintf(stderr, "Geef de bestandsnaam van de map: ");
+	scanf("%s", fileName);
+	fprintf(stderr, "\nGeef het aantal rijen voor de 6 dimenties: ");
+	scanf("%d %d %d %d %d %d",
+		&xSize,
+		&dxSize,
+		&ySize,
+		&dySize,
+		&deltaSize,
+		&phiSize
+	);
+	fprintf(stderr, "\nmap x\n");
+	mallocMap(&x, xSize);
 	fprintf(stderr, "map dx\n");
-	mallocMap(&dx, 31);
+	mallocMap(&dx, dxSize);
 	fprintf(stderr, "map y\n");
-	mallocMap(&y, 24);
+	mallocMap(&y, ySize);
 	fprintf(stderr, "map dy\n");
-	mallocMap(&dy, 24);
+	mallocMap(&dy, dySize);
 	fprintf(stderr, "map delta\n");
-	mallocMap(&delta, 32);
+	mallocMap(&delta, deltaSize);
 	fprintf(stderr, "map phi\n");
-	mallocMap(&phi, 1);
+	mallocMap(&phi, phiSize);
 	fprintf(stderr, "map coefs\n");
 	mallocCoefs(&c, ITER);
 
