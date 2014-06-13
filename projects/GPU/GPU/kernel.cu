@@ -191,6 +191,26 @@ double sumArray(double *nums, int length){
 	return nums[0];
 }
 
+void scanCoefs(char *fileName, int *count){
+	char* line = (char*)malloc(200*sizeof(char));
+	FILE *fp = fopen(fileName, "r");
+	if( fp == NULL ){
+		fprintf(stderr, "Error while opening the file.\n");
+		exit(EXIT_FAILURE);
+	}
+	for((*count)=0;fgets(line, 200, fp) != NULL;(*count)++){
+		if( strncmp(line, "\n", 1)==0 || strncmp(line, "\0", 1)==0){
+			(*count)--;
+		}
+	}
+	if(!feof(fp)){
+		fprintf(stderr, "Something was wrong with the coefficient file!");
+		exit(EXIT_FAILURE);
+	}
+	fclose(fp);
+	free(line);
+}
+
 void getCoefs(Coefs *c){
 	fprintf(stderr, "Begin values of the 6 dimentions: ");
 
@@ -202,6 +222,22 @@ void getCoefs(Coefs *c){
 		&((*c).delta[0]),
 		&((*c).phi[0])
 		);
+}
+
+void readCoefs(Coefs *c, char *fileName, int count){
+	FILE *fp = fopen(fileName, "r");
+	int i;
+	for(i=0;i>count;i++){
+		fscanf(fp, "%lf %lf %lf %lf %lf %lf",
+			&((*c).x[0]),
+			&((*c).dx[0]),
+			&((*c).y[0]),
+			&((*c).dy[0]),
+			&((*c).delta[0]),
+			&((*c).phi[0])
+			);
+	}
+	fclose(fp);
 }
 
 void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
@@ -225,7 +261,7 @@ int main(int argc, char **argv){
 	char coefsFileName[200] = "";
 	char outputFileName[200] = "";
 	int separateFiles = 0;
-	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter;
+	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter, particleCount = 1;
 	Map x, dx, y, dy, delta, phi;
 	Coefs c;
 	Vars v;
@@ -368,8 +404,14 @@ int main(int argc, char **argv){
 
 	// read the coefficients from user input
 	fprintf(stderr, "read coefs\n");
-	getCoefs(&c);
+	if(strncmp(coefsFileName, "\0", 1)==0){
+		getCoefs(&c);
+	}else{
+		scanCoefs(coefsFileName, &particleCount);
+		fprintf(stderr, "Particle count: %d", particleCount);
 
+		exit(EXIT_SUCCESS);
+	}
 	// calculate the coefficients for 4000 iterations
 	for(int i = 0;i < ITER-1;i++){
 		calcCoefs(&c, i, &x, &(c.x[i+1]));
@@ -384,6 +426,10 @@ int main(int argc, char **argv){
 	FILE* outputFile;
 	if(!strncmp(outputFileName, "\0", 1)==0){
 		outputFile = fopen(outputFileName, "w");
+		if( outputFile == NULL ){
+			fprintf(stderr, "Error while opening the file.\n");
+			exit(EXIT_FAILURE);
+		}
 	}else{
 		outputFile = stdout;
 	}
