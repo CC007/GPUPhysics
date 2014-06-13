@@ -24,7 +24,7 @@ typedef struct Coefs{
 	double *dy;
 	double *delta;
 	double *phi;
-}Coofs;
+}Coefs;
 
 typedef struct Vars{
 	double mass;
@@ -77,26 +77,34 @@ void freeMap(Map *m){
 	}
 }
 
-void mallocCoefs(Coofs *c, int p){
-	(*c).length = p;
-	if(p>0){
-		(*c).x = (double*)calloc(p,sizeof(double));
-		(*c).dx = (double*)calloc(p,sizeof(double));
-		(*c).y = (double*)calloc(p,sizeof(double));
-		(*c).dy = (double*)calloc(p,sizeof(double));
-		(*c).delta = (double*)calloc(p,sizeof(double));
-		(*c).phi = (double*)calloc(p,sizeof(double));
+void mallocCoefs(Coefs **c, int iter, int p){
+	if(iter>0){
+		int i;
+		(*c) = (Coefs*) malloc(p*sizeof(Coefs));
+		for(i=0;i<p;i++){
+			(*c)[i].length = iter;
+			(*c)[i].x = (double*)calloc(iter,sizeof(double));
+			(*c)[i].dx = (double*)calloc(iter,sizeof(double));
+			(*c)[i].y = (double*)calloc(iter,sizeof(double));
+			(*c)[i].dy = (double*)calloc(iter,sizeof(double));
+			(*c)[i].delta = (double*)calloc(iter,sizeof(double));
+			(*c)[i].phi = (double*)calloc(iter,sizeof(double));
+		}
 	}
 }
 
-void freeCoefs(Coofs *c){
-	if((*c).length > 0){
-		free((*c).x);
-		free((*c).dx);
-		free((*c).y);
-		free((*c).dy);
-		free((*c).delta);
-		free((*c).phi);
+void freeCoefs(Coefs **c, int p){
+	if((*c)[0].length > 0){
+		int i;
+		for(i=0;i<p;i++){
+			free((*c)[i].x);
+			free((*c)[i].dx);
+			free((*c)[i].y);
+			free((*c)[i].dy);
+			free((*c)[i].delta);
+			free((*c)[i].phi);
+		}
+		free(*c);
 	}
 }
 
@@ -195,7 +203,7 @@ void scanCoefs(char *fileName, int *count){
 	char* line = (char*)malloc(200*sizeof(char));
 	FILE *fp = fopen(fileName, "r");
 	if( fp == NULL ){
-		fprintf(stderr, "Error while opening the file.\n");
+		fprintf(stderr, "Error while opening the coefficients file: %s\n", fileName);
 		exit(EXIT_FAILURE);
 	}
 	for((*count)=0;fgets(line, 200, fp) != NULL;(*count)++){
@@ -224,17 +232,21 @@ void getCoefs(Coefs *c){
 		);
 }
 
-void readCoefs(Coefs *c, char *fileName, int count){
+void readCoefs(Coefs **c, char *fileName, int count){
 	FILE *fp = fopen(fileName, "r");
+	if( fp == NULL ){
+		fprintf(stderr, "Error while opening the coefficients file: %s\n", fileName);
+		exit(EXIT_FAILURE);
+	}
 	int i;
-	for(i=0;i>count;i++){
+	for(i=0;i<count;i++){
 		fscanf(fp, "%lf %lf %lf %lf %lf %lf",
-			&((*c).x[0]),
-			&((*c).dx[0]),
-			&((*c).y[0]),
-			&((*c).dy[0]),
-			&((*c).delta[0]),
-			&((*c).phi[0])
+			&((*c)[i].x[0]),
+			&((*c)[i].dx[0]),
+			&((*c)[i].y[0]),
+			&((*c)[i].dy[0]),
+			&((*c)[i].delta[0]),
+			&((*c)[i].phi[0])
 			);
 	}
 	fclose(fp);
@@ -263,7 +275,7 @@ int main(int argc, char **argv){
 	int separateFiles = 0;
 	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter, particleCount = 1;
 	Map x, dx, y, dy, delta, phi;
-	Coefs c;
+	Coefs *c;
 	Vars v;
 
 	// Read the program arguments
@@ -342,7 +354,7 @@ int main(int argc, char **argv){
 	FILE *scanFileP = fopen(fileName, "r");
 	fprintf(stderr, "check if file is NULL\n");
 	if( scanFileP == NULL ){
-		fprintf(stderr, "Error while opening the file.\n");
+		fprintf(stderr, "Error while opening the map file: %s\n", fileName);
 		exit(EXIT_FAILURE);
 	}
 	fprintf(stderr, "Get map sizes\n");
@@ -374,16 +386,12 @@ int main(int argc, char **argv){
 	fprintf(stderr, "map phi\n");
 	mallocMap(&phi, phiSize);
 
-	// allocate mempry for the coefficients
-	fprintf(stderr, "map coefs\n");
-	mallocCoefs(&c, ITER);
-
 	// read some variables and the map lines from the map file
 	fprintf(stderr, "open file\n");
 	FILE *mapFileP = fopen(fileName, "r");
 	fprintf(stderr, "check if file is NULL\n");
 	if( mapFileP == NULL ){
-		fprintf(stderr, "Error while opening the file.\n");
+		fprintf(stderr, "Error while opening the map file: %s\n", fileName);
 		exit(EXIT_FAILURE);
 	}
 	fprintf(stderr, "read vars");
@@ -402,41 +410,67 @@ int main(int argc, char **argv){
 	readMap(mapFileP, &phi, 5);
 	fclose(mapFileP);
 
+
+	// allocate mempry for the coefficients
+
 	// read the coefficients from user input
-	fprintf(stderr, "read coefs\n");
 	if(strncmp(coefsFileName, "\0", 1)==0){
-		getCoefs(&c);
+		fprintf(stderr, "map coefs\n");
+		mallocCoefs(&c, ITER, particleCount);
+		fprintf(stderr, "read coefs\n");
+		getCoefs(c);
 	}else{
 		scanCoefs(coefsFileName, &particleCount);
-		fprintf(stderr, "Particle count: %d", particleCount);
-
-		exit(EXIT_SUCCESS);
+		fprintf(stderr, "map coefs\n");
+		mallocCoefs(&c, ITER, particleCount);
+		fprintf(stderr, "read coefs\n");
+		readCoefs(&c, coefsFileName, particleCount);
+		fprintf(stderr, "Particle count: %d\n", particleCount);
 	}
 	// calculate the coefficients for 4000 iterations
-	for(int i = 0;i < ITER-1;i++){
-		calcCoefs(&c, i, &x, &(c.x[i+1]));
-		calcCoefs(&c, i, &dx, &(c.dx[i+1]));
-		calcCoefs(&c, i, &y, &(c.y[i+1]));
-		calcCoefs(&c, i, &dy, &(c.dy[i+1]));
-		calcCoefs(&c, i, &delta, &(c.delta[i+1]));
-		calcCoefs(&c, i, &phi, &(c.phi[i+1]));
-	}
-
-	// show or save the coefficients 
-	FILE* outputFile;
-	if(!strncmp(outputFileName, "\0", 1)==0){
-		outputFile = fopen(outputFileName, "w");
-		if( outputFile == NULL ){
-			fprintf(stderr, "Error while opening the file.\n");
-			exit(EXIT_FAILURE);
+	for(int n = 0;n < particleCount;n++){
+		for(int i = 0;i < ITER-1;i++){
+			calcCoefs(&c[n], i, &x, &(c[n].x[i+1]));
+			calcCoefs(&c[n], i, &dx, &(c[n].dx[i+1]));
+			calcCoefs(&c[n], i, &y, &(c[n].y[i+1]));
+			calcCoefs(&c[n], i, &dy, &(c[n].dy[i+1]));
+			calcCoefs(&c[n], i, &delta, &(c[n].delta[i+1]));
+			calcCoefs(&c[n], i, &phi, &(c[n].phi[i+1]));
 		}
-	}else{
-		outputFile = stdout;
+
+		// show or save the coefficients 
+		FILE* outputFile;
+		char fullOutputFileName[200] = "";
+		if(!strncmp(outputFileName, "\0", 1)==0){
+			if(separateFiles==1){
+				sprintf(fullOutputFileName, "part%012d.%s", n+1, outputFileName);
+			}else{
+				sprintf(fullOutputFileName, "%s", outputFileName);
+			}
+			if(n==0){
+				outputFile = fopen(fullOutputFileName, "w");
+			}else{
+				if(separateFiles==1){
+					outputFile = fopen(fullOutputFileName, "w");
+				}else{
+					outputFile = fopen(fullOutputFileName, "a");
+				}
+			}
+			if( outputFile == NULL ){
+				fprintf(stderr, "Error while opening the output file: %s\n", fullOutputFileName);
+				exit(EXIT_FAILURE);
+			}
+		}else{
+			outputFile = stdout;
+		}
+		for(int i = 0;i < ITER;i++){
+			fprintf(outputFile, "%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c[n].x[i], c[n].dx[i], c[n].y[i], c[n].dy[i], c[n].delta[i], c[n].phi[i]);
+		}
+		fprintf(outputFile, "\n");
+		if(!strncmp(outputFileName, "\0", 1)==0){
+			fclose(outputFile);
+		}
 	}
-	for(int i = 0;i < ITER;i++){
-		fprintf(outputFile, "%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
-	}
-	fclose(outputFile);
 
 	// clean up the heap and tell that the computation is finished
 	freeMap(&x);
@@ -445,7 +479,7 @@ int main(int argc, char **argv){
 	freeMap(&dy);
 	freeMap(&delta);
 	freeMap(&phi);
-	freeCoefs(&c);
+	freeCoefs(&c, particleCount);
 	fprintf(stderr, "Output is created. Press Enter to continue...\n");
 	getchar();
 	getchar();
