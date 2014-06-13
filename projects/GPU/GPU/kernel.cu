@@ -37,6 +37,21 @@ typedef struct Vars{
 	double lRefOrbit;
 }Vars;
 
+void scanFile(FILE* fp, int *size){
+	char* line = (char*)malloc(200*sizeof(char));
+	line = fgets(line, 200, fp);
+	if(strncmp(line, "     I  COEFFICIENT            ORDER EXPONENTS", 46)!=0){
+		if(strncmp(line, "     ALL COMPONENTS ZERO ", 25)!=0){
+			exit(EXIT_FAILURE);
+		}else{
+			*size=1;
+		}
+	}else{
+		for((*size)=0;!strstr((line = fgets(line, 200, fp)), "------");(*size)++);
+	}
+	free(line);
+}
+
 void mallocMap(Map *m, int p){
 	(*m).length = p;
 	if(p>0){
@@ -213,7 +228,16 @@ int main(int argc, char **argv){
 	Vars v;
 	fprintf(stderr, "Geef de bestandsnaam van de map: ");
 	scanf("%s", fileName);
-	fprintf(stderr, "\nGeef het aantal rijen voor de 6 dimenties: ");
+	fprintf(stderr, "open file\n");
+	FILE *scanfilep = fopen(fileName, "r");
+	fprintf(stderr, "check if file is NULL\n");
+	if( scanfilep == NULL ){
+		fprintf(stderr, "Error while opening the file.\n");
+		scanf("%s", fileName);
+		exit(EXIT_FAILURE);
+	}
+
+	/*fprintf(stderr, "\nGeef het aantal rijen voor de 6 dimenties: ");
 	scanf("%d %d %d %d %d %d",
 		&xSize,
 		&dxSize,
@@ -221,7 +245,22 @@ int main(int argc, char **argv){
 		&dySize,
 		&deltaSize,
 		&phiSize
-	);
+		);*/
+	fprintf(stderr, "Get map sizes\n");
+	char* line = (char*)malloc(200*sizeof(char));
+	do{
+		line = fgets(line, 200, scanfilep);
+	}while(!strstr(line, " A "));
+	free(line);
+	scanFile(scanfilep, &xSize);
+	scanFile(scanfilep, &dxSize);
+	scanFile(scanfilep, &ySize);
+	scanFile(scanfilep, &dySize);
+	scanFile(scanfilep, &deltaSize);
+	scanFile(scanfilep, &phiSize);
+	fclose(scanfilep);
+	fprintf(stderr, "\nmap sizes: %d %d %d %d %d %d\n", xSize, dxSize, ySize, dySize, deltaSize, phiSize);
+
 	fprintf(stderr, "\nmap x\n");
 	mallocMap(&x, xSize);
 	fprintf(stderr, "map dx\n");
@@ -242,6 +281,7 @@ int main(int argc, char **argv){
 	fprintf(stderr, "check if file is NULL\n");
 	if( fp == NULL ){
 		fprintf(stderr, "Error while opening the file.\n");
+	scanf("%s", fileName);
 		exit(EXIT_FAILURE);
 	}
 	fprintf(stderr, "read vars");
@@ -278,5 +318,9 @@ int main(int argc, char **argv){
 	freeMap(&delta);
 	freeMap(&phi);
 	freeCoefs(&c);
+	
+	fprintf(stderr, "Output is created. Press Enter to continue...\n");
+	getchar();
+	getchar();
 	return 0;
 }
