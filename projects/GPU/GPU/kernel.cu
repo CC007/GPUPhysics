@@ -221,36 +221,110 @@ void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
 }
 
 int main(int argc, char **argv){
-	char fileName[200];
-	int xSize, dxSize, ySize, dySize, deltaSize, phiSize;
+	char fileName[200] = "";
+	char coefsFileName[200] = "";
+	char outputFileName[200] = "";
+	int separateFiles = 0;
+	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter;
 	Map x, dx, y, dy, delta, phi;
 	Coefs c;
 	Vars v;
-	fprintf(stderr, "Filename of the map: ");
-	scanf("%s", fileName);
-	fprintf(stderr, "open file\n");
-	FILE *scanfilep = fopen(fileName, "r");
-	fprintf(stderr, "check if file is NULL\n");
-	if( scanfilep == NULL ){
-		fprintf(stderr, "Error while opening the file.\n");
+
+	// Read the program arguments
+	argcCounter = argc;
+	while ((argcCounter > 1) && (argv[1][0] == '-'))
+	{
+		if(argv[1][2] == '=' && argv[1][3] != '\0'){
+			switch (argv[1][1]){
+			case 'm':
+				sprintf(fileName, "%s",&argv[1][3]);
+				break;
+
+			case 'c':
+				sprintf(coefsFileName ,"%s",&argv[1][3]);
+				break;
+
+			case 'o':
+				sprintf(outputFileName ,"%s",&argv[1][3]);
+				break;
+
+			case 's':
+				sscanf(&argv[1][3] ,"%d", &separateFiles);
+				break;
+
+			default:
+				fprintf(stderr, "Wrong Argument: %s\n", argv[1]);
+				exit(EXIT_FAILURE);
+			}
+		}else{
+			switch (argv[1][1]){
+			case 's':
+				separateFiles = 1;
+				break;
+			case '-':
+				if(!strstr(&argv[1][2], "help") || argv[1][6] != '\0'){
+					fprintf(stderr, "Wrong Argument: %s\n", argv[1]);
+					exit(EXIT_FAILURE);
+				}
+			case 'h':
+				if(strstr(&argv[1][2], "help") ||  argv[1][2] == '\0'){
+					printf("Calculates a certain amount of steps of a charged particle in a inhomogenus magnetic field.\n\n");
+					printf("<executable> -h | <executable> [-m=<mapFileName>] [-c=<coeffFileName>]\n[-o=<outputFileName> [-s]]\n\n");
+					printf("-h, --help\t\t Display help\n");
+					printf("-m=<mapFileName>\t Set the map file to be <mapFileName>. If not set, it\n\t\t\t will be asked for in the program itself.\n");
+					printf("-c=<coeffFileName>\t Set the coefficients file to be <coeffFileName>. If\n\t\t\t not set, it will be asked for in the program itself.\n\t\t\t Note that the coefficients file supports multiple\n\t\t\t particles, while if the program is run without this\n\t\t\t file, it supports only one particle.\n");
+					printf("-o=<outputFileName>\t Set the output file to be <outputFileName>. If not\n\t\t\t set, it will default to stdout\n");
+					printf("-s\t\t\t Choose if you want one output file or (if applicable)\n\t\t\t multiple output files. Note that this parameter can\n\t\t\t only be set if an output file is set.\n");
+					exit(EXIT_SUCCESS);
+				}else{
+					fprintf(stderr, "Wrong Argument: %s\n", argv[1]);
+					exit(EXIT_FAILURE);
+				}
+				break;
+
+			default:
+				fprintf(stderr, "Wrong Argument: %s\n", argv[1]);
+				exit(EXIT_FAILURE);
+			}
+		}
+		++argv;
+		--argcCounter;
+	}
+	if(separateFiles == 1 && strncmp(outputFileName, "\0", 1)==0){
+		fprintf(stderr, "-s shouldn't be used without setting an output file");
+		exit(EXIT_FAILURE);
+	}
+
+	// if not set in argument, ask for file name of the map file
+	if(strncmp(fileName, "\0", 1)==0){
+		fprintf(stderr, "Filename of the map: ");
 		scanf("%s", fileName);
+	}
+
+	// use the map file to gather the sizes of the 6 coefficients
+	fprintf(stderr, "open file\n");
+	FILE *scanFileP = fopen(fileName, "r");
+	fprintf(stderr, "check if file is NULL\n");
+	if( scanFileP == NULL ){
+		fprintf(stderr, "Error while opening the file.\n");
 		exit(EXIT_FAILURE);
 	}
 	fprintf(stderr, "Get map sizes\n");
 	char* line = (char*)malloc(200*sizeof(char));
 	do{
-		line = fgets(line, 200, scanfilep);
+		line = fgets(line, 200, scanFileP);
 	}while(!strstr(line, " A "));
 	free(line);
-	scanFile(scanfilep, &xSize);
-	scanFile(scanfilep, &dxSize);
-	scanFile(scanfilep, &ySize);
-	scanFile(scanfilep, &dySize);
-	scanFile(scanfilep, &deltaSize);
-	scanFile(scanfilep, &phiSize);
-	fclose(scanfilep);
+	scanFile(scanFileP, &xSize);
+	scanFile(scanFileP, &dxSize);
+	scanFile(scanFileP, &ySize);
+	scanFile(scanFileP, &dySize);
+	scanFile(scanFileP, &deltaSize);
+	scanFile(scanFileP, &phiSize);
+	fclose(scanFileP);
 	fprintf(stderr, "\nmap sizes: %d %d %d %d %d %d\n", xSize, dxSize, ySize, dySize, deltaSize, phiSize);
 
+	// allocate memory for the map
 	fprintf(stderr, "\nmap x\n");
 	mallocMap(&x, xSize);
 	fprintf(stderr, "map dx\n");
@@ -263,36 +337,41 @@ int main(int argc, char **argv){
 	mallocMap(&delta, deltaSize);
 	fprintf(stderr, "map phi\n");
 	mallocMap(&phi, phiSize);
+
+	// allocate mempry for the coefficients
 	fprintf(stderr, "map coefs\n");
 	mallocCoefs(&c, ITER);
 
+	// read some variables and the map lines from the map file
 	fprintf(stderr, "open file\n");
-	FILE *fp = fopen(fileName, "r");
+	FILE *mapFileP = fopen(fileName, "r");
 	fprintf(stderr, "check if file is NULL\n");
-	if( fp == NULL ){
+	if( mapFileP == NULL ){
 		fprintf(stderr, "Error while opening the file.\n");
-	scanf("%s", fileName);
 		exit(EXIT_FAILURE);
 	}
 	fprintf(stderr, "read vars");
-	readVars(fp,&v);
+	readVars(mapFileP,&v);
 	fprintf(stderr, "read x\n");
-	readMap(fp, &x, 0);
+	readMap(mapFileP, &x, 0);
 	fprintf(stderr, "read dx\n");
-	readMap(fp, &dx, 1);
+	readMap(mapFileP, &dx, 1);
 	fprintf(stderr, "read y\n");
-	readMap(fp, &y, 2);
+	readMap(mapFileP, &y, 2);
 	fprintf(stderr, "read dy\n");
-	readMap(fp, &dy, 3);
+	readMap(mapFileP, &dy, 3);
 	fprintf(stderr, "read delta\n");
-	readMap(fp, &delta, 4);
+	readMap(mapFileP, &delta, 4);
 	fprintf(stderr, "read phi\n");
-	readMap(fp, &phi, 5);
+	readMap(mapFileP, &phi, 5);
+	fclose(mapFileP);
 
+	// read the coefficients from user input
 	fprintf(stderr, "read coefs\n");
 	getCoefs(&c);
+
+	// calculate the coefficients for 4000 iterations
 	for(int i = 0;i < ITER-1;i++){
-		printf("%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
 		calcCoefs(&c, i, &x, &(c.x[i+1]));
 		calcCoefs(&c, i, &dx, &(c.dx[i+1]));
 		calcCoefs(&c, i, &y, &(c.y[i+1]));
@@ -300,7 +379,20 @@ int main(int argc, char **argv){
 		calcCoefs(&c, i, &delta, &(c.delta[i+1]));
 		calcCoefs(&c, i, &phi, &(c.phi[i+1]));
 	}
-	fclose(fp);
+
+	// show or save the coefficients 
+	FILE* outputFile;
+	if(!strncmp(outputFileName, "\0", 1)==0){
+		outputFile = fopen(outputFileName, "w");
+	}else{
+		outputFile = stdout;
+	}
+	for(int i = 0;i < ITER;i++){
+		fprintf(outputFile, "%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c.x[i], c.dx[i], c.y[i], c.dy[i], c.delta[i], c.phi[i]);
+	}
+	fclose(outputFile);
+
+	// clean up the heap and tell that the computation is finished
 	freeMap(&x);
 	freeMap(&dx);
 	freeMap(&y);
@@ -308,7 +400,6 @@ int main(int argc, char **argv){
 	freeMap(&delta);
 	freeMap(&phi);
 	freeCoefs(&c);
-	
 	fprintf(stderr, "Output is created. Press Enter to continue...\n");
 	getchar();
 	getchar();
