@@ -192,7 +192,7 @@ double sumArray(double *nums, int length){
 }
 
 void getCoefs(Coefs *c){
-	fprintf(stderr, "Geef de 6 coefficienten: ");
+	fprintf(stderr, "Begin values of the 6 dimentions: ");
 
 	scanf("%lf %lf %lf %lf %lf %lf",
 		&((*c).x[0]),
@@ -226,7 +226,7 @@ int main(int argc, char **argv){
 	Map x, dx, y, dy, delta, phi;
 	Coefs c;
 	Vars v;
-	fprintf(stderr, "Geef de bestandsnaam van de map: ");
+	fprintf(stderr, "Filename of the map: ");
 	scanf("%s", fileName);
 	fprintf(stderr, "open file\n");
 	FILE *scanfilep = fopen(fileName, "r");
@@ -236,16 +236,6 @@ int main(int argc, char **argv){
 		scanf("%s", fileName);
 		exit(EXIT_FAILURE);
 	}
-
-	/*fprintf(stderr, "\nGeef het aantal rijen voor de 6 dimenties: ");
-	scanf("%d %d %d %d %d %d",
-		&xSize,
-		&dxSize,
-		&ySize,
-		&dySize,
-		&deltaSize,
-		&phiSize
-		);*/
 	fprintf(stderr, "Get map sizes\n");
 	char* line = (char*)malloc(200*sizeof(char));
 	do{
