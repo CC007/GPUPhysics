@@ -273,7 +273,7 @@ int main(int argc, char **argv){
 	char coefsFileName[200] = "";
 	char outputFileName[200] = "";
 	int separateFiles = 0;
-	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter, particleCount = 1;
+	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter, particleCount = 1, iter = ITER;
 	Map x, dx, y, dy, delta, phi;
 	Coefs *c;
 	Vars v;
@@ -296,8 +296,8 @@ int main(int argc, char **argv){
 				sprintf(outputFileName ,"%s",&argv[1][3]);
 				break;
 
-			case 's':
-				sscanf(&argv[1][3] ,"%d", &separateFiles);
+			case 'i':
+				sscanf(&argv[1][3] ,"%d", &iter);
 				break;
 
 			default:
@@ -316,13 +316,14 @@ int main(int argc, char **argv){
 				}
 			case 'h':
 				if(strstr(&argv[1][2], "help") ||  argv[1][2] == '\0'){
-					printf("Calculates a certain amount of steps of a charged particle in a inhomogenus magnetic field.\n\n");
-					printf("<executable> -h | <executable> [-m=<mapFileName>] [-c=<coeffFileName>]\n[-o=<outputFileName> [-s]]\n\n");
+					printf("Calculates a certain amount of steps of a charged particle in a inhomogeneous\nmagnetic field.\n\n");
+					printf("<executable> (-h|--help) | <executable> [-m=<mapFileName>] [-c=<coeffFileName>]\n[-o=<outputFileName> [-s]] [-i=<nr>]\n\n");
 					printf("-h, --help\t\t Display help\n");
 					printf("-m=<mapFileName>\t Set the map file to be <mapFileName>. If not set, it\n\t\t\t will be asked for in the program itself.\n");
 					printf("-c=<coeffFileName>\t Set the coefficients file to be <coeffFileName>. If\n\t\t\t not set, it will be asked for in the program itself.\n\t\t\t Note that the coefficients file supports multiple\n\t\t\t particles, while if the program is run without this\n\t\t\t file, it supports only one particle.\n");
 					printf("-o=<outputFileName>\t Set the output file to be <outputFileName>. If not\n\t\t\t set, it will default to stdout\n");
 					printf("-s\t\t\t Choose if you want one output file or (if applicable)\n\t\t\t multiple output files. Note that this parameter can\n\t\t\t only be set if an output file is set.\n");
+					printf("-i=<nr>\t\t\t Set the number of iterations to <nr>. If not set, it\n\t\t\t will default to 4000.\n");
 					exit(EXIT_SUCCESS);
 				}else{
 					fprintf(stderr, "Wrong Argument: %s\n", argv[1]);
@@ -416,20 +417,20 @@ int main(int argc, char **argv){
 	// read the coefficients from user input
 	if(strncmp(coefsFileName, "\0", 1)==0){
 		fprintf(stderr, "map coefs\n");
-		mallocCoefs(&c, ITER, particleCount);
+		mallocCoefs(&c, iter, particleCount);
 		fprintf(stderr, "read coefs\n");
 		getCoefs(c);
 	}else{
 		scanCoefs(coefsFileName, &particleCount);
 		fprintf(stderr, "map coefs\n");
-		mallocCoefs(&c, ITER, particleCount);
+		mallocCoefs(&c, iter, particleCount);
 		fprintf(stderr, "read coefs\n");
 		readCoefs(&c, coefsFileName, particleCount);
 		fprintf(stderr, "Particle count: %d\n", particleCount);
 	}
 	// calculate the coefficients for 4000 iterations
 	for(int n = 0;n < particleCount;n++){
-		for(int i = 0;i < ITER-1;i++){
+		for(int i = 0;i < iter-1;i++){
 			calcCoefs(&c[n], i, &x, &(c[n].x[i+1]));
 			calcCoefs(&c[n], i, &dx, &(c[n].dx[i+1]));
 			calcCoefs(&c[n], i, &y, &(c[n].y[i+1]));
@@ -463,7 +464,7 @@ int main(int argc, char **argv){
 		}else{
 			outputFile = stdout;
 		}
-		for(int i = 0;i < ITER;i++){
+		for(int i = 0;i < iter;i++){
 			fprintf(outputFile, "%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c[n].x[i], c[n].dx[i], c[n].y[i], c[n].dy[i], c[n].delta[i], c[n].phi[i]);
 		}
 		fprintf(outputFile, "\n");
@@ -482,6 +483,8 @@ int main(int argc, char **argv){
 	freeCoefs(&c, particleCount);
 	fprintf(stderr, "Output is created. Press Enter to continue...\n");
 	getchar();
-	getchar();
+	if(strncmp(coefsFileName, "\0", 1)==0){
+		getchar();
+	}
 	return 0;
 }
