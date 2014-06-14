@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
 
 #define ITER 4000
 
@@ -107,6 +109,67 @@ void freeCoefs(Coefs **c, int p){
 		free(*c);
 	}
 }
+
+void cudaMallocMap(Map *m, int p){
+	cudaMalloc((void**)&m, sizeof(Map));
+	(*m).length = p;
+	if(p>0){
+		cudaMalloc((void**)&((*m).A), sizeof(double));
+		cudaMalloc((void**)&((*m).x), sizeof(int));
+		cudaMalloc((void**)&((*m).dx), sizeof(int));
+		cudaMalloc((void**)&((*m).y), sizeof(int));
+		cudaMalloc((void**)&((*m).dy), sizeof(int));
+		cudaMalloc((void**)&((*m).delta), sizeof(int));
+		cudaMalloc((void**)&((*m).phi), sizeof(int));
+	}
+}
+
+void cudaFreeMap(Map *m){
+	if((*m).length > 0){
+		cudaFree((*m).A);
+		cudaFree((*m).x);
+		cudaFree((*m).dx);
+		cudaFree((*m).y);
+		cudaFree((*m).dy);
+		cudaFree((*m).delta);
+		cudaFree((*m).phi);
+	}
+	cudaFree(m);
+}
+
+void cudaMallocCoefs(Coefs **c, int iter, int p){
+	if(iter>0){
+		int i;
+		cudaMalloc((void**)c, p*sizeof(Coefs));
+		for(i=0;i<p;i++){
+			(*c)[i].length = iter;
+			cudaMalloc((void**)&((*c)[i].x), sizeof(double));
+			cudaMalloc((void**)&((*c)[i].dx), sizeof(double));
+			cudaMalloc((void**)&((*c)[i].y), sizeof(double));
+			cudaMalloc((void**)&((*c)[i].dy), sizeof(double));
+			cudaMalloc((void**)&((*c)[i].delta), sizeof(double));
+			cudaMalloc((void**)&((*c)[i].phi), sizeof(double));
+		}
+	}
+}
+
+
+
+void cudaFreeCoefs(Coefs **c, int p){
+	if((*c)[0].length > 0){
+		int i;
+		for(i=0;i<p;i++){
+			cudaFree((*c)[i].x);
+			cudaFree((*c)[i].dx);
+			cudaFree((*c)[i].y);
+			cudaFree((*c)[i].dy);
+			cudaFree((*c)[i].delta);
+			cudaFree((*c)[i].phi);
+		}
+		cudaFree(*c);
+	}
+}
+
 
 void readMap(FILE *fp, Map *m, int nr){
 	char* line = (char*)malloc(200*sizeof(char));
