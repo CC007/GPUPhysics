@@ -268,10 +268,57 @@ void calcCoefs(Coefs *c, int idx, Map *m, double *newValue){
 	free(nums);
 }
 
+void kernel(Coefs **c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, int *particleCount, int *iter, char **outputFileName, int *separateFiles){
+	for(int n = 0;n < *particleCount;n++){
+		for(int i = 0;i < (*iter)-1;i++){
+			calcCoefs(&((*c)[n]), i, x, &((*c)[n].x[i+1]));
+			calcCoefs(&((*c)[n]), i, dx, &((*c)[n].dx[i+1]));
+			calcCoefs(&((*c)[n]), i, y, &((*c)[n].y[i+1]));
+			calcCoefs(&((*c)[n]), i, dy, &((*c)[n].dy[i+1]));
+			calcCoefs(&((*c)[n]), i, delta, &((*c)[n].delta[i+1]));
+			calcCoefs(&((*c)[n]), i, phi, &((*c)[n].phi[i+1]));
+		}
+
+		// show or save the coefficients 
+		FILE* outputFile;
+		char fullOutputFileName[200] = "";
+		if(!strncmp(*outputFileName, "\0", 1)==0){
+			if(*separateFiles==1){
+				sprintf(fullOutputFileName, "part%09d.%s", n+1, *outputFileName);
+			}else{
+				sprintf(fullOutputFileName, "%s", *outputFileName);
+			}
+			if(n==0){
+				outputFile = fopen(fullOutputFileName, "w");
+			}else{
+				if(*separateFiles==1){
+					outputFile = fopen(fullOutputFileName, "w");
+				}else{
+					outputFile = fopen(fullOutputFileName, "a");
+				}
+			}
+			if( outputFile == NULL ){
+				fprintf(stderr, "Error while opening the output file: %s\n", fullOutputFileName);
+				exit(EXIT_FAILURE);
+			}
+		}else{
+			outputFile = stdout;
+		}
+		for(int i = 0;i < *iter;i++){
+			fprintf(outputFile, "%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", (*c)[n].x[i], (*c)[n].dx[i], (*c)[n].y[i], (*c)[n].dy[i], (*c)[n].delta[i], (*c)[n].phi[i]);
+		}
+		fprintf(outputFile, "\n");
+		if(!strncmp(*outputFileName, "\0", 1)==0){
+			fclose(outputFile);
+		}
+	}
+}
+
 int main(int argc, char **argv){
 	char fileName[200] = "";
 	char coefsFileName[200] = "";
-	char outputFileName[200] = "";
+	char *outputFileName = (char*)malloc(200*sizeof(char));
+	outputFileName[0] = '\0';
 	int separateFiles = 0;
 	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter, particleCount = 1, iter = ITER;
 	Map x, dx, y, dy, delta, phi;
@@ -429,49 +476,7 @@ int main(int argc, char **argv){
 		fprintf(stderr, "Particle count: %d\n", particleCount);
 	}
 	// calculate the coefficients for 4000 iterations
-	for(int n = 0;n < particleCount;n++){
-		for(int i = 0;i < iter-1;i++){
-			calcCoefs(&c[n], i, &x, &(c[n].x[i+1]));
-			calcCoefs(&c[n], i, &dx, &(c[n].dx[i+1]));
-			calcCoefs(&c[n], i, &y, &(c[n].y[i+1]));
-			calcCoefs(&c[n], i, &dy, &(c[n].dy[i+1]));
-			calcCoefs(&c[n], i, &delta, &(c[n].delta[i+1]));
-			calcCoefs(&c[n], i, &phi, &(c[n].phi[i+1]));
-		}
-
-		// show or save the coefficients 
-		FILE* outputFile;
-		char fullOutputFileName[200] = "";
-		if(!strncmp(outputFileName, "\0", 1)==0){
-			if(separateFiles==1){
-				sprintf(fullOutputFileName, "part%09d.%s", n+1, outputFileName);
-			}else{
-				sprintf(fullOutputFileName, "%s", outputFileName);
-			}
-			if(n==0){
-				outputFile = fopen(fullOutputFileName, "w");
-			}else{
-				if(separateFiles==1){
-					outputFile = fopen(fullOutputFileName, "w");
-				}else{
-					outputFile = fopen(fullOutputFileName, "a");
-				}
-			}
-			if( outputFile == NULL ){
-				fprintf(stderr, "Error while opening the output file: %s\n", fullOutputFileName);
-				exit(EXIT_FAILURE);
-			}
-		}else{
-			outputFile = stdout;
-		}
-		for(int i = 0;i < iter;i++){
-			fprintf(outputFile, "%10.7f %10.7f %10.7f %10.7f %10.7f %10.7f\n", c[n].x[i], c[n].dx[i], c[n].y[i], c[n].dy[i], c[n].delta[i], c[n].phi[i]);
-		}
-		fprintf(outputFile, "\n");
-		if(!strncmp(outputFileName, "\0", 1)==0){
-			fclose(outputFile);
-		}
-	}
+	kernel(&c, &x, &dx, &y, &dy, &delta, &phi, &particleCount, &iter, &outputFileName, &separateFiles);
 
 	// clean up the heap and tell that the computation is finished
 	freeMap(&x);
@@ -481,6 +486,7 @@ int main(int argc, char **argv){
 	freeMap(&delta);
 	freeMap(&phi);
 	freeCoefs(&c, particleCount);
+	free(outputFileName);
 	fprintf(stderr, "Output is created. Press Enter to continue...\n");
 	getchar();
 	if(strncmp(coefsFileName, "\0", 1)==0){
