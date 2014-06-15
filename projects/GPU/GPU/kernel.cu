@@ -110,31 +110,32 @@ void freeCoefs(Coefs **c, int p){
 	}
 }
 
-void cudaMallocMap(Map *m, int p){
-	cudaMalloc((void**)&m, sizeof(Map));
-	(*m).length = p;
+void cudaMallocMap(Map **m, int p){
+	cudaMalloc((void**)&(*m), sizeof(Map));
+	(**m).length = p;
+	// TODO use dynamic memory
 	if(p>0){
-		cudaMalloc((void**)&((*m).A), sizeof(double));
-		cudaMalloc((void**)&((*m).x), sizeof(int));
-		cudaMalloc((void**)&((*m).dx), sizeof(int));
-		cudaMalloc((void**)&((*m).y), sizeof(int));
-		cudaMalloc((void**)&((*m).dy), sizeof(int));
-		cudaMalloc((void**)&((*m).delta), sizeof(int));
-		cudaMalloc((void**)&((*m).phi), sizeof(int));
+		cudaMalloc((void**)&((**m).A), sizeof(double));
+		cudaMalloc((void**)&((**m).x), sizeof(int));
+		cudaMalloc((void**)&((**m).dx), sizeof(int));
+		cudaMalloc((void**)&((**m).y), sizeof(int));
+		cudaMalloc((void**)&((**m).dy), sizeof(int));
+		cudaMalloc((void**)&((**m).delta), sizeof(int));
+		cudaMalloc((void**)&((**m).phi), sizeof(int));
 	}
 }
 
-void cudaFreeMap(Map *m){
-	if((*m).length > 0){
-		cudaFree((*m).A);
-		cudaFree((*m).x);
-		cudaFree((*m).dx);
-		cudaFree((*m).y);
-		cudaFree((*m).dy);
-		cudaFree((*m).delta);
-		cudaFree((*m).phi);
+void cudaFreeMap(Map **m){
+	if((**m).length > 0){
+		cudaFree((**m).A);
+		cudaFree((**m).x);
+		cudaFree((**m).dx);
+		cudaFree((**m).y);
+		cudaFree((**m).dy);
+		cudaFree((**m).delta);
+		cudaFree((**m).phi);
 	}
-	cudaFree(m);
+	cudaFree(*m);
 }
 
 void cudaMallocCoefs(Coefs **c, int iter, int p){
@@ -385,7 +386,9 @@ int main(int argc, char **argv){
 	int separateFiles = 0;
 	int xSize, dxSize, ySize, dySize, deltaSize, phiSize, argcCounter, particleCount = 1, iter = ITER;
 	Map x, dx, y, dy, delta, phi;
+	Map *dev_x, *dev_dx, *dev_y, *dev_dy, *dev_delta, *dev_phi;
 	Coefs *c;
+	Coefs *dev_c;
 	Vars v;
 
 	// Read the program arguments
@@ -486,16 +489,22 @@ int main(int argc, char **argv){
 	// allocate memory for the map
 	fprintf(stderr, "\nmap x\n");
 	mallocMap(&x, xSize);
+	cudaMallocMap(&dev_x, xSize);
 	fprintf(stderr, "map dx\n");
 	mallocMap(&dx, dxSize);
+	cudaMallocMap(&dev_dx, dxSize);
 	fprintf(stderr, "map y\n");
 	mallocMap(&y, ySize);
+	cudaMallocMap(&dev_y, ySize);
 	fprintf(stderr, "map dy\n");
 	mallocMap(&dy, dySize);
+	cudaMallocMap(&dev_dy, dySize);
 	fprintf(stderr, "map delta\n");
 	mallocMap(&delta, deltaSize);
+	cudaMallocMap(&dev_delta, deltaSize);
 	fprintf(stderr, "map phi\n");
 	mallocMap(&phi, phiSize);
+	cudaMallocMap(&dev_phi, phiSize);
 
 	// read some variables and the map lines from the map file
 	fprintf(stderr, "open file\n");
@@ -528,12 +537,14 @@ int main(int argc, char **argv){
 	if(strncmp(coefsFileName, "\0", 1)==0){
 		fprintf(stderr, "map coefs\n");
 		mallocCoefs(&c, iter, particleCount);
+		cudaMallocCoefs(&dev_c, iter, particleCount);
 		fprintf(stderr, "read coefs\n");
 		getCoefs(c);
 	}else{
 		scanCoefs(coefsFileName, &particleCount);
 		fprintf(stderr, "map coefs\n");
 		mallocCoefs(&c, iter, particleCount);
+		cudaMallocCoefs(&dev_c, iter, particleCount);
 		fprintf(stderr, "read coefs\n");
 		readCoefs(&c, coefsFileName, particleCount);
 		fprintf(stderr, "Particle count: %d\n", particleCount);
@@ -548,7 +559,14 @@ int main(int argc, char **argv){
 	freeMap(&dy);
 	freeMap(&delta);
 	freeMap(&phi);
+	cudaFreeMap(&dev_x);
+	cudaFreeMap(&dev_dx);
+	cudaFreeMap(&dev_y);
+	cudaFreeMap(&dev_dy);
+	cudaFreeMap(&dev_delta);
+	cudaFreeMap(&dev_phi);
 	freeCoefs(&c, particleCount);
+	cudaFreeCoefs(&c, particleCount);
 	free(outputFileName);
 	fprintf(stderr, "Output is created. Press Enter to continue...\n");
 	getchar();
