@@ -112,27 +112,41 @@ void freeCoefs(Coefs **c, int p){
 
 void cudaMallocMap(Map **m, int p){
 	cudaMalloc((void**)m, sizeof(Map));
-	cudaMemset(&((**m).length), p, 1);
+	cudaMemset(&((**m).length), p, sizeof(int));
 	if(p>0){
-		cudaMalloc((void**)&((**m).A), p*sizeof(double));
-		cudaMalloc((void**)&((**m).x), p*sizeof(int));
-		cudaMalloc((void**)&((**m).dx), p*sizeof(int));
-		cudaMalloc((void**)&((**m).y), p*sizeof(int));
-		cudaMalloc((void**)&((**m).dy), p*sizeof(int));
-		cudaMalloc((void**)&((**m).delta), p*sizeof(int));
-		cudaMalloc((void**)&((**m).phi), p*sizeof(int));
+		double **h_arr1 = (double**)malloc(sizeof(double*));
+		int **h_arr2 = (int**)malloc(sizeof(int*));
+		cudaMemcpy(h_arr1, &((**m).A), sizeof(double*), cudaMemcpyDeviceToHost);
+		cudaMalloc((void**)h_arr1, p*sizeof(double));
+		cudaMemcpy(h_arr2, &((**m).x), sizeof(int*), cudaMemcpyDeviceToHost);
+		cudaMalloc((void**)h_arr2, p*sizeof(int));
+		cudaMemcpy(h_arr2, &((**m).dx), sizeof(int*), cudaMemcpyDeviceToHost);
+		cudaMalloc((void**)h_arr2, p*sizeof(int));
+		cudaMemcpy(h_arr2, &((**m).y), sizeof(int*), cudaMemcpyDeviceToHost);
+		cudaMalloc((void**)h_arr2, p*sizeof(int));
+		cudaMemcpy(h_arr2, &((**m).dy), sizeof(int*), cudaMemcpyDeviceToHost);
+		cudaMalloc((void**)h_arr2, p*sizeof(int));
+		cudaMemcpy(h_arr2, &((**m).delta), sizeof(int*), cudaMemcpyDeviceToHost);
+		cudaMalloc((void**)h_arr2, p*sizeof(int));
+		cudaMemcpy(h_arr2, &((**m).phi), sizeof(int*), cudaMemcpyDeviceToHost);
+		cudaMalloc((void**)h_arr2, p*sizeof(int));
+		free(h_arr1);
+		free(h_arr2);
 	}
 }
 
 void cudaFreeMap(Map **m){
-	if((**m).length > 0){
-		cudaFree((**m).A);
-		cudaFree((**m).x);
-		cudaFree((**m).dx);
-		cudaFree((**m).y);
-		cudaFree((**m).dy);
-		cudaFree((**m).delta);
-		cudaFree((**m).phi);
+	Map h_map;
+	cudaMemcpy(&h_map, *m, sizeof(Map), cudaMemcpyDeviceToHost);
+
+	if(h_map.length > 0){
+		cudaFree(h_map.A);
+		cudaFree(h_map.x);
+		cudaFree(h_map.dx);
+		cudaFree(h_map.y);
+		cudaFree(h_map.dy);
+		cudaFree(h_map.delta);
+		cudaFree(h_map.phi);
 	}
 	cudaFree(*m);
 }
@@ -142,13 +156,21 @@ void cudaMallocCoefs(Coefs **c, int iter, int p){
 		int i;
 		cudaMalloc((void**)c, p*sizeof(Coefs));
 		for(i=0;i<p;i++){
-			(*c)[i].length = iter;
-			cudaMalloc((void**)&((*c)[i].x), sizeof(double));
-			cudaMalloc((void**)&((*c)[i].dx), sizeof(double));
-			cudaMalloc((void**)&((*c)[i].y), sizeof(double));
-			cudaMalloc((void**)&((*c)[i].dy), sizeof(double));
-			cudaMalloc((void**)&((*c)[i].delta), sizeof(double));
-			cudaMalloc((void**)&((*c)[i].phi), sizeof(double));
+			double **h_arr = (double**)malloc(sizeof(double*));
+			cudaMemset(&((*c)[i].length), iter, sizeof(int));
+			cudaMemcpy(h_arr, &((*c)[i].x), sizeof(double*), cudaMemcpyDeviceToHost);
+			cudaMalloc((void**)h_arr, iter*sizeof(double));
+			cudaMemcpy(h_arr, &((*c)[i].dx), sizeof(double*), cudaMemcpyDeviceToHost);
+			cudaMalloc((void**)h_arr, iter*sizeof(double));
+			cudaMemcpy(h_arr, &((*c)[i].y), sizeof(double*), cudaMemcpyDeviceToHost);
+			cudaMalloc((void**)h_arr, iter*sizeof(double));
+			cudaMemcpy(h_arr, &((*c)[i].dy), sizeof(double*), cudaMemcpyDeviceToHost);
+			cudaMalloc((void**)h_arr, iter*sizeof(double));
+			cudaMemcpy(h_arr, &((*c)[i].delta), sizeof(double*), cudaMemcpyDeviceToHost);
+			cudaMalloc((void**)h_arr, iter*sizeof(double));
+			cudaMemcpy(h_arr, &((*c)[i].phi), sizeof(double*), cudaMemcpyDeviceToHost);
+			cudaMalloc((void**)h_arr, iter*sizeof(double));
+			free(h_arr);
 		}
 	}
 }
@@ -156,18 +178,18 @@ void cudaMallocCoefs(Coefs **c, int iter, int p){
 
 
 void cudaFreeCoefs(Coefs **c, int p){
-	if((*c)[0].length > 0){
-		int i;
-		for(i=0;i<p;i++){
-			cudaFree((*c)[i].x);
-			cudaFree((*c)[i].dx);
-			cudaFree((*c)[i].y);
-			cudaFree((*c)[i].dy);
-			cudaFree((*c)[i].delta);
-			cudaFree((*c)[i].phi);
-		}
-		cudaFree(*c);
+	Coefs h_coefs;
+	int i;
+	for(i=0;i<p;i++){
+		cudaMemcpy(&h_coefs, &((*c)[i]), sizeof(Coefs), cudaMemcpyDeviceToHost);
+		cudaFree(h_coefs.x);
+		cudaFree(h_coefs.dx);
+		cudaFree(h_coefs.y);
+		cudaFree(h_coefs.dy);
+		cudaFree(h_coefs.delta);
+		cudaFree(h_coefs.phi);
 	}
+	cudaFree(*c);
 }
 
 
@@ -565,7 +587,7 @@ int main(int argc, char **argv){
 	cudaFreeMap(&dev_delta);
 	cudaFreeMap(&dev_phi);
 	freeCoefs(&c, particleCount);
-	cudaFreeCoefs(&c, particleCount);
+	cudaFreeCoefs(&dev_c, particleCount);
 	free(outputFileName);
 	fprintf(stderr, "Output is created. Press Enter to continue...\n");
 	getchar();
