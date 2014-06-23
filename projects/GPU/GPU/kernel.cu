@@ -111,17 +111,16 @@ void freeCoefs(Coefs **c, int p){
 }
 
 void cudaMallocMap(Map **m, int p){
-	cudaMalloc((void**)&(*m), sizeof(Map));
-	(**m).length = p;
-	// TODO use dynamic memory
+	cudaMalloc((void**)m, sizeof(Map));
+	cudaMemset(&((**m).length), p, 1);
 	if(p>0){
-		cudaMalloc((void**)&((**m).A), sizeof(double));
-		cudaMalloc((void**)&((**m).x), sizeof(int));
-		cudaMalloc((void**)&((**m).dx), sizeof(int));
-		cudaMalloc((void**)&((**m).y), sizeof(int));
-		cudaMalloc((void**)&((**m).dy), sizeof(int));
-		cudaMalloc((void**)&((**m).delta), sizeof(int));
-		cudaMalloc((void**)&((**m).phi), sizeof(int));
+		cudaMalloc((void**)&((**m).A), p*sizeof(double));
+		cudaMalloc((void**)&((**m).x), p*sizeof(int));
+		cudaMalloc((void**)&((**m).dx), p*sizeof(int));
+		cudaMalloc((void**)&((**m).y), p*sizeof(int));
+		cudaMalloc((void**)&((**m).dy), p*sizeof(int));
+		cudaMalloc((void**)&((**m).delta), p*sizeof(int));
+		cudaMalloc((void**)&((**m).phi), p*sizeof(int));
 	}
 }
 
