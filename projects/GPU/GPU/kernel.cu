@@ -175,8 +175,6 @@ void cudaMallocCoefs(Coefs **c, int iter, int p){
 	}
 }
 
-
-
 void cudaFreeCoefs(Coefs **c, int p){
 	Coefs h_coefs;
 	int i;
@@ -191,7 +189,6 @@ void cudaFreeCoefs(Coefs **c, int p){
 	}
 	cudaFree(*c);
 }
-
 
 void readMap(FILE *fp, Map *m, int nr){
 	char* line = (char*)malloc(200*sizeof(char));
@@ -399,6 +396,14 @@ void kernel(Coefs **c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, i
 	}
 }
 
+__global__ void testVals(Map *m, Coefs *c){
+	m->length = 42;
+	m->A[0] = 1.5;
+	m->dx[20] = 5;
+	c[0].delta[4] = 3.14159265;
+}
+
+
 int main(int argc, char **argv){
 	char fileName[200] = "";
 	char coefsFileName[200] = "";
@@ -570,8 +575,32 @@ int main(int argc, char **argv){
 		readCoefs(&c, coefsFileName, particleCount);
 		fprintf(stderr, "Particle count: %d\n", particleCount);
 	}
+
+
+	// cuda test kernel
+	testVals<<<1, 1>>>(dev_x, dev_c);
+	int testval1;
+	double testval2;
+	double testval3;
+	int length1;
+	int length2;
+	Map testmap;
+	Coefs testcoefs;
+	cudaMemcpy(&testmap, &dev_x, sizeof(Map), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&testcoefs, &dev_c, sizeof(Coefs), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&testval1, &(testmap.dx[20]), sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&testval2, &(testmap.A[0]), sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&testval3, &(testcoefs.delta[4]), sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&length1, &(testmap.length), sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&length2, &(testcoefs.length), sizeof(int), cudaMemcpyDeviceToHost);
+
 	// calculate the coefficients for 4000 iterations
 	kernel(&c, &x, &dx, &y, &dy, &delta, &phi, &particleCount, &iter, &outputFileName, &separateFiles);
+
+
+	// print test results
+	fprintf(stderr, "Length map: %d\nLength coefs: %d\nValue map A[0]: %lf\nValue map dx[20]: %d\nValue coefs[0] delta[4]: %lf\n", length1, length2, testval2, testval1, testval3);
+
 
 	// clean up the heap and tell that the computation is finished
 	freeMap(&x);
