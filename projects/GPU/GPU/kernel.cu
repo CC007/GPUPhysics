@@ -584,15 +584,17 @@ int main(int argc, char **argv){
 	double testval3;
 	int length1;
 	int length2;
-	Map testmap;
-	Coefs testcoefs;
+	Map testmap; 
+	mallocMap(&testmap, xSize);
+	Coefs *testcoefs;
+	mallocCoefs(&testcoefs,iter, particleCount);
 	cudaMemcpy(&testmap, &dev_x, sizeof(Map), cudaMemcpyDeviceToHost);
-	cudaMemcpy(&testcoefs, &dev_c, sizeof(Coefs), cudaMemcpyDeviceToHost);
+	cudaMemcpy(testcoefs, &dev_c, sizeof(Coefs), cudaMemcpyDeviceToHost);
 	cudaMemcpy(&testval1, &(testmap.dx[20]), sizeof(int), cudaMemcpyDeviceToHost);
 	cudaMemcpy(&testval2, &(testmap.A[0]), sizeof(double), cudaMemcpyDeviceToHost);
-	cudaMemcpy(&testval3, &(testcoefs.delta[4]), sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&testval3, &(testcoefs[0].delta[4]), sizeof(double), cudaMemcpyDeviceToHost);
 	cudaMemcpy(&length1, &(testmap.length), sizeof(int), cudaMemcpyDeviceToHost);
-	cudaMemcpy(&length2, &(testcoefs.length), sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&length2, &(testcoefs[0].length), sizeof(int), cudaMemcpyDeviceToHost);
 
 	// calculate the coefficients for 4000 iterations
 	kernel(&c, &x, &dx, &y, &dy, &delta, &phi, &particleCount, &iter, &outputFileName, &separateFiles);
