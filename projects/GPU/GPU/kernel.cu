@@ -698,7 +698,7 @@ int main(int argc, char **argv){
 		char fullOutputFileName[200] = "";
 		if(!strncmp(outputFileName, "\0", 1)==0){
 			if(separateFiles==1){
-				sprintf(fullOutputFileName, "part%09d.%s", n+1, outputFileName);
+				sprintf(fullOutputFileName, "part%09d.%s", n+1, outputFileName); //bug if path is used to file
 			}else{
 				sprintf(fullOutputFileName, "%s", outputFileName);
 			}
