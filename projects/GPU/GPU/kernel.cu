@@ -40,11 +40,6 @@ typedef struct Vars{
 	double lRefOrbit;
 }Vars;
 
-//for debugging purposes, to check the content of testval
-__global__ void test(Coefs *c){
-	printf("////////////////////////////////////\nLength: %d\nx: %p\ndx: %p\ny: %p\ndy: %p\ndelta: %p\nphi: %p\n////////////////////////////////////\n", c->length, c->x, c->dx, c->y, c->dy, c->delta, c->phi);
-}
-
 void scanFile(FILE* fp, int *size){
 	char* line = (char*)malloc(200*sizeof(char));
 	line = fgets(line, 200, fp);
@@ -59,6 +54,7 @@ void scanFile(FILE* fp, int *size){
 	}
 	free(line);
 }
+
 void mallocMap(Map *m, int p){
 	(*m).length = p;
 	if(p>0){
@@ -353,6 +349,7 @@ __device__ void cudaSumArrayHelper(double *nums, int length, int interval){
 		next += interval;
 	} while (index < length);
 }
+
 __device__ double cudaSumArray(double *nums, int length){
 	if(length <= 0){
 		return 0;
