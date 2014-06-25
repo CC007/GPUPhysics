@@ -7,6 +7,7 @@
 #include "device_launch_parameters.h"
 
 #define ITER 4000
+#define MIN(x, y) (x<y?x:y)
 
 typedef struct Map{
 	int length;
@@ -464,7 +465,9 @@ void kernel(Coefs *c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, in
 }
 
 __global__ void cudaKernel(Coefs *c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, int particleCount, int iter){
-	for(int n = 0;n < particleCount;n++){
+	int size = gridDim.x;
+	int idx = blockIdx.x;
+	for(int n = idx;n < particleCount;n+=size){
 		for(int i = 0;i < iter-1;i++){
 			cudaCalcCoefs(&(c[n]), i, x, &(c[n].x[i+1]));
 			cudaCalcCoefs(&(c[n]), i, dx, &(c[n].dx[i+1]));
@@ -489,6 +492,7 @@ int main(int argc, char **argv){
 	Coefs *c;
 	Coefs *dev_c;
 	Vars v;
+
 
 	// Read the program arguments
 	argcCounter = argc;
@@ -671,6 +675,10 @@ int main(int argc, char **argv){
 		kernel(c, &x, &dx, &y, &dy, &delta, &phi, particleCount, iter);
 	}else{
 		//gpu
+		cudaDeviceProp deviceProperties;
+		cudaGetDeviceProperties(&deviceProperties, 0);
+		int blocks = MIN(1024, particleCount);
+		fprintf(stderr, "Device name: %s\nUsed blocks: %d\n", deviceProperties.name , blocks);
 		cudaMemcpyMap(dev_x, &x, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_dx, &dx, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_y, &y, cudaMemcpyHostToDevice);
@@ -678,7 +686,7 @@ int main(int argc, char **argv){
 		cudaMemcpyMap(dev_delta, &delta, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_phi, &phi, cudaMemcpyHostToDevice);
 		cudaMemcpyFirstCoefs(dev_c, c, particleCount);
-		cudaKernel<<<1, 1>>>(dev_c, dev_x, dev_dx, dev_y, dev_dy, dev_delta, dev_phi, particleCount, iter);
+		cudaKernel<<<blocks, 1>>>(dev_c, dev_x, dev_dx, dev_y, dev_dy, dev_delta, dev_phi, particleCount, iter);
 	}
 	for(int n = 0;n < particleCount;n++){
 		// if acceleration is on, copy coefs from device to host
