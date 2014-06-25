@@ -450,15 +450,15 @@ __device__ void cudaCalcCoefs(Coefs *c, int idx, Map *m, double *newValue){
 	free(nums);
 }
 
-void kernel(Coefs **c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, int *particleCount, int *iter){
-	for(int n = 0;n < *particleCount;n++){
-		for(int i = 0;i < (*iter)-1;i++){
-			calcCoefs(&((*c)[n]), i, x, &((*c)[n].x[i+1]));
-			calcCoefs(&((*c)[n]), i, dx, &((*c)[n].dx[i+1]));
-			calcCoefs(&((*c)[n]), i, y, &((*c)[n].y[i+1]));
-			calcCoefs(&((*c)[n]), i, dy, &((*c)[n].dy[i+1]));
-			calcCoefs(&((*c)[n]), i, delta, &((*c)[n].delta[i+1]));
-			calcCoefs(&((*c)[n]), i, phi, &((*c)[n].phi[i+1]));
+void kernel(Coefs *c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, int particleCount, int iter){
+	for(int n = 0;n < particleCount;n++){
+		for(int i = 0;i < iter-1;i++){
+			calcCoefs(&(c[n]), i, x, &(c[n].x[i+1]));
+			calcCoefs(&(c[n]), i, dx, &(c[n].dx[i+1]));
+			calcCoefs(&(c[n]), i, y, &(c[n].y[i+1]));
+			calcCoefs(&(c[n]), i, dy, &(c[n].dy[i+1]));
+			calcCoefs(&(c[n]), i, delta, &(c[n].delta[i+1]));
+			calcCoefs(&(c[n]), i, phi, &(c[n].phi[i+1]));
 		}
 	}
 }
@@ -668,7 +668,7 @@ int main(int argc, char **argv){
 	// calculate the coefficients for 4000 iterations
 	if(!accelerate){
 		//cpu
-		kernel(&c, &x, &dx, &y, &dy, &delta, &phi, &particleCount, &iter);
+		kernel(c, &x, &dx, &y, &dy, &delta, &phi, particleCount, iter);
 	}else{
 		//gpu
 		cudaMemcpyMap(dev_x, &x, cudaMemcpyHostToDevice);
