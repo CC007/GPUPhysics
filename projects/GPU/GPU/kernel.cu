@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "cuda.h"
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 
 #define ITER 4000
 #define MIN(x, y) (x<y?x:y)
@@ -465,9 +465,11 @@ void kernel(Coefs *c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, in
 }
 
 __global__ void cudaKernel(Coefs *c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, int particleCount, int iter){
-	int size = gridDim.x;
+	int sizeX = gridDim.x;
 	int idx = blockIdx.x;
-	for(int n = idx;n < particleCount;n+=size){
+	int sizeY = gridDim.y;
+	int idy = blockIdx.y;
+	for(int n = idx*sizeY+idy;n < particleCount;n+=sizeX*sizeY){
 		for(int i = 0;i < iter-1;i++){
 			cudaCalcCoefs(&(c[n]), i, x, &(c[n].x[i+1]));
 			cudaCalcCoefs(&(c[n]), i, dx, &(c[n].dx[i+1]));
@@ -677,8 +679,11 @@ int main(int argc, char **argv){
 		//gpu
 		cudaDeviceProp deviceProperties;
 		cudaGetDeviceProperties(&deviceProperties, 0);
-		int blocks = MIN(1024, particleCount);
+		int blocks = MIN(1048576, particleCount);
 		fprintf(stderr, "Device name: %s\nUsed blocks: %d\n", deviceProperties.name , blocks);
+		dim3 dims;
+		dims.x = (unsigned int)sqrt((float)blocks);
+		dims.y = blocks / dims.x + (blocks % dims.x > 0);
 		cudaMemcpyMap(dev_x, &x, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_dx, &dx, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_y, &y, cudaMemcpyHostToDevice);
@@ -686,7 +691,7 @@ int main(int argc, char **argv){
 		cudaMemcpyMap(dev_delta, &delta, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_phi, &phi, cudaMemcpyHostToDevice);
 		cudaMemcpyFirstCoefs(dev_c, c, particleCount);
-		cudaKernel<<<blocks, 1>>>(dev_c, dev_x, dev_dx, dev_y, dev_dy, dev_delta, dev_phi, particleCount, iter);
+		cudaKernel<<<dims, 1>>>(dev_c, dev_x, dev_dx, dev_y, dev_dy, dev_delta, dev_phi, particleCount, iter);
 	}
 	for(int n = 0;n < particleCount;n++){
 		// if acceleration is on, copy coefs from device to host
@@ -698,7 +703,7 @@ int main(int argc, char **argv){
 		char fullOutputFileName[200] = "";
 		if(!strncmp(outputFileName, "\0", 1)==0){
 			if(separateFiles==1){
-				sprintf(fullOutputFileName, "part%09d.%s", n+1, outputFileName); //bug if path is used to file
+				sprintf(fullOutputFileName, "%s.part%09d", outputFileName, n+1); //bug if path is used to file
 			}else{
 				sprintf(fullOutputFileName, "%s", outputFileName);
 			}
