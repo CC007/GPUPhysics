@@ -467,8 +467,8 @@ void kernel(Coefs *c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, in
 __global__ void cudaKernel(Coefs *c, Map *x, Map *dx, Map *y, Map *dy, Map *delta, Map *phi, int particleCount, int iter){
 	int sizeX = gridDim.x;
 	int idx = blockIdx.x;
-	int sizeY = gridDim.y;
-	int idy = blockIdx.y;
+	int sizeY = blockDim.x;
+	int idy = threadIdx.x;
 	for(int n = idx*sizeY+idy;n < particleCount;n+=sizeX*sizeY){
 		for(int i = 0;i < iter-1;i++){
 			cudaCalcCoefs(&(c[n]), i, x, &(c[n].x[i+1]));
@@ -681,9 +681,8 @@ int main(int argc, char **argv){
 		cudaGetDeviceProperties(&deviceProperties, 0);
 		int blocks = MIN(1048576, particleCount);
 		fprintf(stderr, "Device name: %s\nUsed blocks: %d\n", deviceProperties.name , blocks);
-		dim3 dims;
-		dims.x = (unsigned int)sqrt((float)blocks);
-		dims.y = blocks / dims.x + (blocks % dims.x > 0);
+		int dimBlocks = sqrt((float)blocks);
+		int dimThreads = blocks / dimBlocks + (blocks % dimBlocks > 0);
 		cudaMemcpyMap(dev_x, &x, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_dx, &dx, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_y, &y, cudaMemcpyHostToDevice);
@@ -691,7 +690,7 @@ int main(int argc, char **argv){
 		cudaMemcpyMap(dev_delta, &delta, cudaMemcpyHostToDevice);
 		cudaMemcpyMap(dev_phi, &phi, cudaMemcpyHostToDevice);
 		cudaMemcpyFirstCoefs(dev_c, c, particleCount);
-		cudaKernel<<<dims, 1>>>(dev_c, dev_x, dev_dx, dev_y, dev_dy, dev_delta, dev_phi, particleCount, iter);
+		cudaKernel<<<dimBlocks, dimThreads>>>(dev_c, dev_x, dev_dx, dev_y, dev_dy, dev_delta, dev_phi, particleCount, iter);
 	}
 	for(int n = 0;n < particleCount;n++){
 		// if acceleration is on, copy coefs from device to host
